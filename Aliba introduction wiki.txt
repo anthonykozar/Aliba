@@ -1,0 +1,60 @@
+This is a draft description of an esoteric programming language inspired by [[Adar]] with some possible extensions for that language.  It is being designed by Anthony Kozar beginning in Nov. 2021.
+
+This language is in the early stages of design and doesn't have a name yet so I've created this page under my personal user page.  I'll refer to the new language as ++ below.  Some names under consideration are Aliba ("A language inspired by Adar") and Alibi.
+
+== Registers ==
+Like Adar, ++ "programs" consist of a number of registers, each of which is a pair of integers.  The first integer of each register is it's current value.  The second integer is an offset that gets added (or subtracted in ++) to other registers when it's own register triggers.  A register triggers whenever it's value is zero or greater.  At each step of the execution of a ++ program, first all registers are checked to see if they trigger. Then the offsets of those registers that did trigger are applied to their target registers simultaneously.  Finally, registers designated as output registers write their values to the program's output.  A ++ program halts after any step in which none of its registers triggered (viz. when all registers have negative values).
+
+Each register is declared as a comma-separated pair within parentheses. Multiple register declarations are separated by whitespace. 
+
+  Eg.  (0, 1)  (-3, 1)  (-5, -2)
+
+== Cliques ==
+A clique is a group of registers that function similarly to a standalone Adar program. A ++ program can have any number of cliques. Whenever the value of one register in a clique is changed, all registers in that clique change by the same amount. When one or more registers in the same clique are triggered, their offsets are combined and applied together to each of that clique's targets.
+
+Cliques also serve as the targets for registers that trigger.  Each clique has an identifier for itself and a list of the identifiers of it's target cliques.  Every register within a clique has the same targets and when a clique is the target of another, all of its registers are affected uniformly.  Registers never target each other individually (unless they are the only members of their cliques).
+
+The syntax for declaring a clique is as follows.
+
+  ''identifier'':  ''target-identifiers'' { ''registers'' }
+
+Identifiers can be .....  <code>''target-identifiers''</code> is a whitespace-separated list of clique identifiers.  In addition, each target identifier may be preceded immediately by either a plus '+' sign or a minus '-' sign.  A clique is allowed to target itself.  There can be any amount of whitespace between the tokens of a clique declaration including newlines as long as there is at least one whitespace character between consecutive identifiers and registers.
+
+Here is a simple program example.
+
+  counter:  counter triggerA  { (0, 1) }
+  triggerA:  -counter -triggerA +stop  { (-10, 10) }
+  stop:  counter triggerA stop { (-50, -10) }
+
+The register in <code>counter</code> triggers every step, incrementing itself and the value of the register in <code>triggerA</code>.  The step ''after'' <code>triggerA</code> reaches 0, it triggers and decrements itself and <code>counter</code> by 10.  10 is subtracted from those two registers because their clique IDs are preceded by minus signs.  But <code>triggerA</code> adds 10 to <code>stop</code> because the target is specified with a plus sign, <code>+stop</code>.  Addition is the default if neither sign is given.
+
+The register in <code>counter</code> will count up to 10 five times and a step later <code>stop</code> will reach 0.  <code>counter</code> and <code>triggerA</code> will be 1 and -9 respectively.  On the next step, <code>counter</code> and <code>stop</code> will both trigger and the values of the registers will become <code>counter</code>: -8, <code>triggerA</code>: -18, and <code>stop</code>: -10, at which point the program halts.
+
+== Input/Output ==
+<code>in[''idx'']</code> where <code>''idx''</code> is an integer (or expression) is replaced by the <code>''idx''</code>-th value from the program's input.  The ++ interpreter determines how many input values are expected by a ++ program, then reads that many integers from standard input and makes the substitutions before it begins executing the program.  If a program can accept a variable amount of input, the interpreter reads all available input and expands the number of registers to fit the input size.  (See "Intervals" below).
+
+++ programs can output either the final or the sequential values of designated registers.  Syntax?
+
+== Expressions ==
+Allow <code>+ - * /</code> when writing register initial values and trigger offsets.  All expressions are evaluated before a program begins running.
+
+== Intervals and Lazy Evaluation ==
+Multiple registers can be defined with a single declaration by using intervals in either or both parts of a register declaration.  An interval has one of these three syntaxes:
+
+  [''start''...''end'']
+  [''start'', ''next''...''end'']
+  [''start'', ''next''...]
+
+where <code>''start''</code>, <code>''next''</code>, and <code>''end''</code> are integers.  If the <code>''next''</code> parameter is given, then the step size between values in the interval is the difference <code>''next'' - ''start''</code>.  When the <code>''next''</code> parameter is absent, the step size is either 1 or -1 depending upon whether <code>''end''</code> is larger than or smaller than <code>''start''</code>.
+
+If both the initial value and the trigger offset fields of a register declaration contain intervals, the two intervals must have the same quantity of values.  The start value of the first interval will be paired with the start value of the second interval, the 2nd value of the first interval will be paired with the 2nd value of the second interval, and so on.  One register will be created for each pair.
+
+===Examples===
+
+<code>([-1...-4], 1)</code> is equivalent to <code>(-1, 1) (-2, 1) (-3, 1) (-4, 1)</code>
+
+<code>([-1, -2...], 1)</code> is equivalent to an infinite number of registers: <code>(-1, 1) (-2, 1) (-3, 1) (-4, 1) (-5, 1) ...</code>
+
+<code>(in[1...4], [1, 3...7])</code> is equivalent to <code>(in[1], 1) (in[2], 3) (in[3], 5) (in[4], 7)</code>
+
+<code>(in[1, 2...], 1)</code> creates one register for each input value: <code>(in[1], 1) (in[2], 1) ...</code>
