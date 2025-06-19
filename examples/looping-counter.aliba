@@ -1,0 +1,5 @@
+; a simple Aliba example
+
+counter:  counter triggerA  { (0, 1) }
+triggerA:  -counter -triggerA +stop?  { (-10, 10) }
+stop?:  counter triggerA stop? { (-50, -10) } ; halts the program
