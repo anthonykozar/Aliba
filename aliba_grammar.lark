@@ -1,0 +1,45 @@
+start: clique+
+
+clique: IDENTIFIER ":" target+ "{" register+ "}"
+
+target: IDENTIFIER       -> pos_target
+      | "+" IDENTIFIER   -> pos_target
+      | "-" IDENTIFIER   -> neg_target
+
+register: "(" initial_value "," offset ")"
+
+initial_value: SIGNED_INT
+             | interval
+             | expr
+#            | output ":" expr
+
+offset: SIGNED_INT
+      | interval
+      | expr
+
+interval: "[" SIGNED_INT RANGE_OP SIGNED_INT "]"  -> se_interval
+        | "[" SIGNED_INT "," SIGNED_INT RANGE_OP SIGNED_INT "]"  -> sne_interval
+        | "[" SIGNED_INT "," SIGNED_INT RANGE_OP "]"  -> sn_interval
+
+expr: IN "[" SIGNED_INT "]"  -> input_single
+    | IN interval            -> input_range
+
+
+IN: "in"
+OUT: "out"
+OUTS: "outs"
+
+IDENTIFIER: (DIGIT)* (LETTER|"?"|"!") (LETTER|DIGIT|"?"|"!")*
+
+RANGE_OP: ".."
+
+COMMENT: /;[^\n]*/x
+
+INT: /(0|[1-9][0-9]*)/
+SIGNED_INT: ["+"|"-"] INT
+
+%import common.LETTER
+%import common.DIGIT
+%import common.WS
+%ignore WS
+%ignore COMMENT
