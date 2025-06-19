@@ -1,19 +1,19 @@
-An esoteric programming language inspired by Adar with some possible extensions for that language.
-https://esolangs.org/wiki/Adar
+Aliba
+=====
 
-Since it doesn't have a name yet, I'll refer to the new language as ++ below.
+Aliba is an esoteric programming language inspired by Adar with some possible extensions for that language. https://esolangs.org/wiki/Adar
 
 Registers
 ---------------
-Like Adar, ++ "programs" consist of a number of registers, each of which is a pair of integers.  The first integer of each register is it's current value.  The second integer is an offset that gets added (or subtracted in ++) to other registers when it's own register triggers.  A register triggers whenever it's value is zero or greater.  At each step of the execution of a ++ program, first all registers are checked to see if they trigger. Then the offsets of those registers that did trigger are applied to their target registers simultaneously.  Finally, registers designated as output registers write their values to the program's output.  A ++ program halts after any step in which none of its registers triggered (viz. when all registers have negative values).
+Like Adar, Aliba "programs" consist of a number of registers, each of which is a pair of integers.  The first integer of each register is it's current value.  The second integer is an offset that gets added (or subtracted in Aliba) to other registers when it's own register triggers.  A register triggers whenever it's value is zero or greater.  At each step of the execution of an Aliba program, first all registers are checked to see if they trigger. Then the offsets of those registers that did trigger are applied to their target registers simultaneously.  Finally, registers designated as output registers write their values to the program's output.  An Aliba program halts after any step in which none of its registers triggered (viz. when all registers have negative values).
 
 Each register is declared as a comma-separated pair within parentheses. Multiple register declarations are separated by whitespace. 
 
-Eg.  (0, 1)  (-3, 1)  (-5, -2)
+  Eg.  (0, 1)  (-3, 1)  (-5, -2)
 
 Cliques
 ------------
-A clique is a group of registers that function similarly to a standalone Adar program. A ++ program can have any number of cliques. Whenever the value of one register in a clique is changed, all registers in that clique change by the same amount. When one or more registers in the same clique are triggered, their offsets are combined and applied together to each of that clique's targets.
+A clique is a group of registers that function similarly to a standalone Adar program. An Aliba program can have any number of cliques. Whenever the value of one register in a clique is changed, all registers in that clique change by the same amount. When one or more registers in the same clique are triggered, their offsets are combined and applied together to each of that clique's targets.
 
 Cliques also serve as the targets for registers that trigger.  Each clique has an identifier for itself and a list of the identifiers of it's target cliques.  Every register within a clique has the same targets and when a clique is the target of another, all of its registers are affected uniformly.  Registers never target each other individually (unless they are the only members of their cliques).
 
@@ -21,13 +21,13 @@ The syntax for declaring a clique is as follows.
 
   identifier:  target-identifiers { registers }
 
-Identifiers can be .....  target-identifiers is a whitespace-separated list of clique identifiers.  In addition, each target identifier may be preceded immediately by either a plus '+' sign or a minus '-' sign.  A clique is allowed to target itself.  There can be any amount of whitespace between the tokens of a clique declaration including newlines as long as there is at least one whitespace character between consecutive identifiers and registers.
+An identifier can be any string of letters, digits, underscores, question marks, and/or exclamation marks as long as it contains at least one non-digit.  'target-identifiers' is a whitespace-separated list of clique identifiers.  In addition, each target identifier may be preceded immediately by either a plus '+' sign or a minus '-' sign.  A clique is allowed to target itself.  There can be any amount of whitespace between the tokens of a clique declaration including newlines as long as there is at least one whitespace character between consecutive identifiers and registers.
 
 Here is a simple program example.
 
-counter:  counter triggerA  { (0, 1) }
-triggerA:  -counter -triggerA +stop  { (-10, 10) }
-stop:  counter triggerA stop { (-50, -10) }
+  counter:  counter triggerA  { (0, 1) }
+  triggerA:  -counter -triggerA +stop?  { (-10, 10) }
+  stop?:  counter triggerA stop? { (-50, -10) }
 
 The register in counter triggers every step, incrementing itself and the value of the register in triggerA.  The step /after/ triggerA reaches 0, it triggers and decrements itself and counter by 10.  10 is subtracted from those two registers because their clique IDs are preceded by minus signs.  But triggerA adds 10 to stop because the target is specified with a plus sign, "+stop".  Addition is the default if neither sign is given.
 
@@ -35,9 +35,17 @@ The register in counter will count up to 10 five times and a step later stop wil
 
 Input/Output
 ---------------------
-in[idx] where idx is an integer (or expression) is replaced by the idx-th value from the program's input.  The ++ interpreter determines how many input values are expected by a ++ program, then reads that many integers from standard input and makes the substitutions before it begins executing the program.  If a program can accept a variable amount of input, the interpreter reads all available input and expands the number of registers to fit the input size.  (See "Intervals" below).
+in[idx], where idx is a positive integer, a positive constant expression, or an interval, is replaced by the idx-th value from the program's input.  The Aliba interpreter determines how many input values are expected by an Aliba program, then reads that many integers from standard input and makes the substitutions before it begins executing the program.  If a program can accept a variable amount of input, the interpreter reads all available input and expands the number of registers to fit the input size.  (See "Intervals" below).
 
-++ programs can output either the final or the sequential values of designated registers.  Syntax?
+Aliba programs can output either the final or the sequential values of designated registers.  If the initial value of a register is preceded by out[idx] and a colon, where idx is a positive integer, a positive constant expression, or an interval, then the final value of that register will be output before the program ends.  outs[idx] can be used to output the value of a register after each program step.  When there are multiple out or outs declarations, then the idx values must be unique and those register values are output in increasing idx order, separated by space characters.  A newline character is also output after each step when there are multiple output registers.
+
+  (out[1]:0, 1)  (out[2]:-3, 1)  (out[3]:-5, -2)
+  (outs[1]:2*4, 1)  (-3, 1)  (-5, -2)
+  (out[1]:in[4], 1)  (-3, 1)  (-5, -2)
+
+Comments
+-------------------
+Comments in Aliba begin with a semicolon (;) and continue until the end of the same line.
 
 Expressions
 -------------------
@@ -47,9 +55,9 @@ Intervals and Lazy Evaluation
 ---------------------------------------------
 Multiple registers can be defined with a single declaration by using intervals in either or both parts of a register declaration.  An interval has one of these three syntaxes:
 
-[start...end]
-[start, next...end]
-[start, next...]
+  [start...end]
+  [start, next...end]
+  [start, next...]
 
 where start, next, and end are integers.  If the next parameter is given, then the step size between values in the interval is the difference next - start.  When the next parameter is absent, the step size is either 1 or -1 depending upon whether end is larger than or smaller than start.
 
@@ -64,3 +72,7 @@ Examples:
 (in[1...4], [1, 3...7]) is equivalent to (in[1], 1) (in[2], 3) (in[3], 5) (in[4], 7)
 
 (in[1, 2...], 1) creates one register for each input value: (in[1], 1) (in[2], 1) ... 
+
+(out[1...3]:in[4...6], 1) is equivalent to (out[1]:in[4], 1) (out[2]:in[5], 1) (out[3]:in[6], 1)
+
+(outs[1..4]:0, [2, 4..8])  is equivalent to (outs[1]:0, 2) (outs[2]:0, 4) (outs[3]:0, 6) (outs[4]:0, 8)
