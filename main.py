@@ -1,16 +1,21 @@
 from aliba_parser import Lark_StandAlone
 from ParseTreeToProgram import ParseTreeToProgram
+from program import AlibaSyntaxError
 
-from sys import argv
+import sys
 
-if len(argv) < 1:
+if len(sys.argv) < 1:
     f = open("examples/looping-counter.aliba", 'r')
 else:
-    f = open(argv[1], 'r')
+    f = open(sys.argv[1], 'r')
 progtxt = f.read()
 f.close()
 
 parser = Lark_StandAlone(transformer=ParseTreeToProgram())
-program = parser.parse(progtxt)
+try:
+    program = parser.parse(progtxt)
+except AlibaSyntaxError as err:
+    print("Syntax error:", err)
+    sys.exit(1)
 
 print(program)

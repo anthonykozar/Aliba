@@ -5,6 +5,9 @@
 # Anthony Kozar
 # June 22, 2025
 
+class AlibaSyntaxError(Exception):
+    pass
+
 class Register(object):
     def __init__(self, initial_value, offset):
         self.initial_value = initial_value
@@ -16,6 +19,33 @@ class Register(object):
 
     def __str__(self):
         return "(" + str(self.current_value) + "," + str(self.offset) + ")"
+
+# Pass 'None' for nextv or end if the source code had no value for one of them.
+# The Interval object will provide the proper interpretation.
+class Interval(object):
+    def __init__(self, start, nextv, end):
+        self.start = start
+        if nextv == None:
+            if start < end:
+                self.incr = 1
+            elif start == end:
+                self.incr = 0
+                self.count = 1
+            else:
+                self.incr = -1
+        else:
+            self.incr = nextv - start
+        self.end = end
+        if end != None and incr != 0:
+            self.count = (end - start + 1)/incr
+            if count < 1:
+                raise AlibaSyntaxError("Interval [%d, %d..%d] contains less than 1 values." % (start, nextv, end))
+        elif end == None:
+            
+
+class RegisterArray(object):
+    def __init__(self, ):
+        pass
 
 class Clique(object):
     def __init__(self, name, targets, registers):
@@ -51,6 +81,16 @@ class Target(object):
 class Program(object):
     def __init__(self, cliques):
         self.cliques = cliques
-
+        self.cliquemap = {cl.name:cl for cl in self.cliques}
+        self._setTargetCliques()
+    
+    def _setTargetCliques(self):
+        for cl in self.cliques:
+            for t in cl.targets:
+                try:
+                    t.clique = self.cliquemap[t.name]
+                except KeyError:
+                    raise AlibaSyntaxError("Target '%s' in clique '%s' does not exist." % (t.name, cl.name))
+    
     def __str__(self):
         return "\n".join((map(str, self.cliques)))
