@@ -5,7 +5,7 @@ Aliba is an esoteric programming language inspired by Adar with some possible ex
 
 Registers
 ---------------
-Like Adar, Aliba "programs" consist of a number of registers, each of which is a pair of integers.  The first integer of each register is it's current value.  The second integer is an offset that gets added (or subtracted in Aliba) to other registers when it's own register triggers.  A register triggers whenever it's value is zero or greater.  At each step of the execution of an Aliba program, first all registers are checked to see if they trigger. Then the offsets of those registers that did trigger are applied to their target registers simultaneously.  Finally, registers designated as output registers write their values to the program's output.  An Aliba program halts after any step in which none of its registers triggered (viz. when all registers have negative values).
+Like Adar, Aliba "programs" consist of a number of registers, each of which is a pair of unbounded integers.  The first integer of each register is it's current value.  The second integer is an offset that gets added (or subtracted in Aliba) to other registers when it's own register triggers.  A register triggers whenever it's value is zero or greater.  At each step of the execution of an Aliba program, first all registers are checked to see if they trigger. Then the offsets of those registers that did trigger are applied to their target registers simultaneously.  Finally, registers designated as output registers write their values to the program's output.  An Aliba program halts after any step in which none of its registers triggered (viz. when all registers have negative values).
 
 Each register is declared as a comma-separated pair within parentheses. Multiple register declarations are separated by whitespace. 
 
@@ -35,21 +35,18 @@ The register in counter will count up to 10 five times and a step later stop wil
 
 Input/Output
 ---------------------
-in[idx], where idx is a positive integer, a positive constant expression, or an interval, is replaced by the idx-th value from the program's input.  The Aliba interpreter determines how many input values are expected by an Aliba program, then reads that many integers from standard input and makes the substitutions before it begins executing the program.  If a program can accept a variable amount of input, the interpreter reads all available input and expands the number of registers to fit the input size.  (See "Intervals" below).
+An Aliba program can input one or more integers at the start of the program and use those integers as the initial or offset values for registers. The syntax `in[idx]`, where idx is a positive integer, a positive constant expression, or an interval, is replaced by the idx-th value from the program's input.  The Aliba interpreter determines how many input values are expected by an Aliba program, then reads that many integers from standard input and makes the substitutions before it begins executing the program.  If a program can accept a variable amount of input, the interpreter reads all available input and expands the number of registers to fit the input size.  (See "Intervals" below).
 
-Aliba programs can output either the final or the sequential values of designated registers.  If the initial value of a register is preceded by out[idx] and a colon, where idx is a positive integer, a positive constant expression, or an interval, then the final value of that register will be output before the program ends.  outs[idx] can be used to output the value of a register after each program step.  When there are multiple out or outs declarations, then the idx values must be unique and those register values are output in increasing idx order, separated by space characters.  A newline character is also output after each step when there are multiple output registers.
+Aliba programs can output either the final or the sequential values of designated registers.  If the initial value of a register is preceded by `out[idx]` and a colon, where idx is a positive integer, a positive constant expression, or an interval, then the final value of that register will be output before the program ends.  `outs[idx]` can be used to output the value of a register after each program step.  When there are multiple out or outs declarations, then the idx values must be unique and those register values are output in increasing idx order, separated by space characters.  A newline character is also output after each step when there are multiple output registers.
 
   (out[1]:0, 1)  (out[2]:-3, 1)  (out[3]:-5, -2)
   (outs[1]:2*4, 1)  (-3, 1)  (-5, -2)
   (out[1]:in[4], 1)  (-3, 1)  (-5, -2)
 
+
 Comments
 -------------------
 Comments in Aliba begin with a semicolon (;) and continue until the end of the same line.
-
-Expressions
--------------------
-Allow + - * / when writing register initial values and trigger offsets.  All expressions are evaluated before a program begins running.
 
 Intervals and Lazy Evaluation
 ---------------------------------------------
@@ -76,3 +73,14 @@ Examples:
 (out[1...3]:in[4...6], 1) is equivalent to (out[1]:in[4], 1) (out[2]:in[5], 1) (out[3]:in[6], 1)
 
 (outs[1..4]:0, [2, 4..8])  is equivalent to (outs[1]:0, 2) (outs[2]:0, 4) (outs[3]:0, 6) (outs[4]:0, 8)
+
+Expressions
+-------------------
+Aliba allows writing expressions with the arithmetic operators + (addition), - (subtraction), * (multiplication), and / (integer division); parentheses; in[]; and intervals.  Expressions can be used either as initial values or trigger offsets in register declarations.  Expressions can also be used (with some limitations) as the index values of input and output declarations and as the start, next, and end values of an interval.
+
+Multiplication and division have a higher precedence than addition and subtraction and parentheses can be used to change the precedence of a subexpression.  Otherwise, operations are evaluated from left to right.  All expressions are evaluated before a program begins running.
+
+If an interval is one of the operands of an operation, then the operation is applied independently to each value of the interval and the result is also an interval.  E.g. [2, 4..16]+3 evaluates to [5, 7..19].  If the next value is missing from an interval involved in an operation, the next value is computed before the operation is evaluated.  E.g. 5*[1..7] is treated like 5*[1, 2..7] and evaluates to [5, 10..35], not [5..35].
+
+** How should dividing an interval work? Should [1..5]/2 be [0, 1, 2] or [0, 1, 1, 2, 2]? Should the step size be required to be divisible by the dividend? **
+
