@@ -21,9 +21,19 @@ interval: "[" SIGNED_INT RANGE_OP SIGNED_INT "]"  -> se_interval
         | "[" SIGNED_INT "," SIGNED_INT RANGE_OP SIGNED_INT "]"  -> sne_interval
         | "[" SIGNED_INT "," SIGNED_INT RANGE_OP "]"  -> sn_interval
 
-expr: IN "[" SIGNED_INT "]"  -> input_single
-    | IN interval            -> input_range
+genexpr: genexpr "+" term   -> sum
+    | genexpr "-" term      -> difference
+    | term
 
+term: term "*" factor       -> product
+    | term "/" factor       -> quotient
+    | factor
+
+factor: SIGNED_INT
+    | interval
+    | IN "[" INT "]"    -> input_single
+    | IN interval       -> input_range
+    | "(" genexpr ")"
 
 IN: "in"
 OUT: "out"
